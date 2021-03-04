@@ -1,12 +1,25 @@
 version: '3'
 services:
+  reverse-proxy:
+    image: nginx:1.19.7
+    container_name: nginx
+    depends_on:
+      - opencti
+    volumes:
+      - /home/stan/Documents/nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+
   redis:
     image: redis:6.0.10
+    container_name: redis
     restart: always
     volumes:
       - redisdata:/data
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+    container_name: elasticsearch
     volumes:
       - esdata:/usr/share/elasticsearch/data
     environment:
@@ -19,8 +32,10 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+
   minio:
     image: minio/minio:RELEASE.2021-02-11T08-23-43Z
+    container_name: minio
     volumes:
       - s3data:/data
     ports:
@@ -35,16 +50,20 @@ services:
       timeout: 20s
       retries: 3
     restart: always
+
   rabbitmq:
     image: rabbitmq:3.8-management
+    container_name: rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
     volumes:
       - amqpdata:/var/lib/rabbitmq
     restart: always
+
   opencti:
-    image: opencti/platform:4.2.4
+    image: stanleyhoilluminate/opencti-platform:4.2.4
+    container_name: opencti
     environment:
       - NODE_OPTIONS=--max-old-space-size=8096
       - APP__PORT=8080
@@ -70,16 +89,21 @@ services:
       - RABBITMQ__USERNAME=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ__PASSWORD=${RABBITMQ_DEFAULT_PASS}
       - PROVIDERS__LOCAL__STRATEGY=LocalStrategy
-    ports:
-      - "8080:8080"
+#    ports:
+#      - "8080:8080"
+    expose:
+      - "8080"
+
     depends_on:
       - redis
       - elasticsearch
       - minio
       - rabbitmq
     restart: always
+
   worker:
-    image: opencti/worker:4.2.4
+    image: stanleyhoilluminate/opencti-worker:4.2.4
+    container_name: worker
     environment:
       - OPENCTI_URL=http://opencti:8080
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
@@ -90,8 +114,10 @@ services:
       mode: replicated
       replicas: 3
     restart: always
+
   connector-history:
     image: opencti/connector-history:4.2.4
+    container_name: connector-history
     environment:
       - OPENCTI_URL=http://opencti:8080
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
@@ -102,8 +128,10 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+
   connector-export-file-stix:
     image: opencti/connector-export-file-stix:4.2.4
+    container_name: connector-export-file-stix
     environment:
       - OPENCTI_URL=http://opencti:8080
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
@@ -114,8 +142,10 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+
   connector-export-file-csv:
     image: opencti/connector-export-file-csv:4.2.4
+    container_name: connector-export-file-csv
     environment:
       - OPENCTI_URL=http://opencti:8080
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
@@ -126,8 +156,12 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+
   connector-import-file-stix:
     image: opencti/connector-import-file-stix:4.2.4
+    container_name: connector-import-file-stix
+    depends_on:
+      - opencti
     environment:
       - OPENCTI_URL=http://opencti:8080
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
@@ -138,8 +172,10 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+
   connector-import-file-pdf-observables:
     image: opencti/connector-import-file-pdf-observables:4.2.4
+    container_name: connector-import-file-pdf-observables
     environment:
       - OPENCTI_URL=http://opencti:8080
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
@@ -151,6 +187,7 @@ services:
       - CONNECTOR_LOG_LEVEL=info
       - PDF_OBSERVABLES_CREATE_INDICATOR=False
     restart: always
+
 volumes:
   esdata:
   s3data:
