@@ -1,4 +1,10 @@
-version: '3'
+version: '3.2'
+
+networks:
+  default:
+   external:
+     name: opencti_network
+
 services:
   reverse-proxy:
     image: nginx:1.19.7
@@ -9,6 +15,8 @@ services:
       - /home/stan/Documents/nginx/nginx.conf:/etc/nginx/nginx.conf
     ports:
       - "80:80"
+    networks:
+      - default
 
   redis:
     image: redis:6.0.10
@@ -16,6 +24,8 @@ services:
     restart: always
     volumes:
       - redisdata:/data
+    networks:
+      - default
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
@@ -32,6 +42,8 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+    networks:
+      - default
 
   minio:
     image: minio/minio:RELEASE.2021-02-11T08-23-43Z
@@ -50,6 +62,8 @@ services:
       timeout: 20s
       retries: 3
     restart: always
+    networks:
+      - default
 
   rabbitmq:
     image: rabbitmq:3.8-management
@@ -60,6 +74,8 @@ services:
     volumes:
       - amqpdata:/var/lib/rabbitmq
     restart: always
+    networks:
+      - default
 
   opencti:
     image: stanleyhoilluminate/opencti-platform:4.2.4
@@ -89,17 +105,17 @@ services:
       - RABBITMQ__USERNAME=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ__PASSWORD=${RABBITMQ_DEFAULT_PASS}
       - PROVIDERS__LOCAL__STRATEGY=LocalStrategy
-#    ports:
-#      - "8080:8080"
     expose:
       - "8080"
-
     depends_on:
       - redis
       - elasticsearch
       - minio
       - rabbitmq
     restart: always
+    networks:
+      default:
+        ipv4_address: 172.20.0.10
 
   worker:
     image: stanleyhoilluminate/opencti-worker:4.2.4
@@ -114,6 +130,8 @@ services:
       mode: replicated
       replicas: 3
     restart: always
+    networks:
+      - default
 
   connector-history:
     image: opencti/connector-history:4.2.4
@@ -128,6 +146,8 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+    networks:
+      - default
 
   connector-export-file-stix:
     image: opencti/connector-export-file-stix:4.2.4
@@ -142,6 +162,8 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+    networks:
+      - default
 
   connector-export-file-csv:
     image: opencti/connector-export-file-csv:4.2.4
@@ -156,6 +178,8 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+    networks:
+      - default
 
   connector-import-file-stix:
     image: opencti/connector-import-file-stix:4.2.4
@@ -172,6 +196,8 @@ services:
       - CONNECTOR_CONFIDENCE_LEVEL=3
       - CONNECTOR_LOG_LEVEL=info
     restart: always
+    networks:
+      - default
 
   connector-import-file-pdf-observables:
     image: opencti/connector-import-file-pdf-observables:4.2.4
@@ -187,6 +213,8 @@ services:
       - CONNECTOR_LOG_LEVEL=info
       - PDF_OBSERVABLES_CREATE_INDICATOR=False
     restart: always
+    networks:
+      - default
 
 volumes:
   esdata:
